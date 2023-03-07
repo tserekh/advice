@@ -62,4 +62,7 @@ class FastText(Similarity):
                 message_embedding += np.array(self.embeddings[token])
         cos_sim = np.dot(question_embedding, message_embedding) / (
                     np.linalg.norm(question_embedding) * np.linalg.norm(message_embedding))
-        return cos_sim
+        if cos_sim:
+            return cos_sim
+        else:
+            return 0
