@@ -1,6 +1,6 @@
 import pandas as pd
 import io
-from typing import List
+from typing import Optional, List
 import numpy as np
 def add_question_mark(df: pd.DataFrame)-> pd.DataFrame:
     target = "question"
@@ -33,13 +33,13 @@ class Similarity:
     pass
 
 class FastText(Similarity):
-    def load_vectors(self, vectors_path: str, use_tokens: List[str]):
+    def load_vectors(self, vectors_path: str, use_tokens: Optional[List[str]]):
         fin = io.open(vectors_path, 'r', encoding='utf-8', newline='\n', errors='ignore')
         # n, d = map(int, fin.readline().split())
         data = {}
         for line in fin:
             tokens = line.rstrip().split(' ')
-            if tokens[0] in use_tokens:
+            if use_tokens and (tokens[0] in use_tokens):
                 data[tokens[0]] = list(map(float, tokens[1:]))
         self.embeddings = data
 
