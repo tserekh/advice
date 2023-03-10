@@ -2,6 +2,7 @@ import pandas as pd
 import io
 from typing import Optional, List
 import numpy as np
+from tqdm import tqdm
 def add_question_mark(df: pd.DataFrame)-> pd.DataFrame:
     target = "question"
     target_list = []
@@ -37,7 +38,7 @@ class FastText(Similarity):
         fin = io.open(vectors_path, 'r', encoding='utf-8', newline='\n', errors='ignore')
         # n, d = map(int, fin.readline().split())
         data = {}
-        for line in fin:
+        for line in tqdm(fin):
             tokens = line.rstrip().split(' ')
             if use_tokens and (tokens[0] in use_tokens):
                 data[tokens[0]] = list(map(float, tokens[1:]))
