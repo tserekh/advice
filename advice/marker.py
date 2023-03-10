@@ -1,15 +1,47 @@
-import pandas as pd
 import io
+import json
 from typing import Optional, List
+
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
-def add_question_mark(df: pd.DataFrame)-> pd.DataFrame:
-    target = "question"
+
+import config
+from advice.tokenizers import tokenize
+
+
+def get_question_score(tokens, coefs) -> float:
+    score = 0
+    for token in tokens:
+        if token in coefs:
+            score+=coefs[token]
+    return score
+
+
+
+def single_message_mark(message):
+    with open("data/models/coefs.json") as f:
+        coefs = json.loads(f.read())
+        text = message.text.lower()
+        tokens = tokenize(text)
+        question_score = get_question_score(tokens, coefs)
+        model_mark = (question_score>config.min_question_score) and (len(tokens)<config.max_questions_tokens)
+        return int(("посовет" in text) or model_mark)
+
+
+def add_question_mark(data: pd.DataFrame)-> pd.DataFrame:
+    target_name = "question"
+    with open("data/models/coefs.json") as f:
+        coefs = json.loads(f.read())
     target_list = []
-    for message in df["message"].values:
-        target_list.append(int("посовет" in message))
-    df[target] = target_list
-    return df
+    for message in data["message"].values:
+        tokens = tokenize(message)
+        question_score = get_question_score(tokens, coefs)
+        model_mark = (question_score>config.min_question_score) and (len(tokens)<config.max_questions_tokens)
+        target = int(("посовет" in message) or model_mark)
+        target_list.append(target)
+    data[target_name] = target_list
+    return data
 
 def get_reply_mapping(df: pd.DataFrame) -> pd.DataFrame:
     """ "message", "question", "go_to_message_id", "message_id"]] """
@@ -17,7 +49,10 @@ def get_reply_mapping(df: pd.DataFrame) -> pd.DataFrame:
         df[df["question"]==1]
         .rename(columns={"message": "question_message", "message_id": "question_message_id"})
         [["question_message", "question_message_id"]]
+
     )
+    df_question["question_message_id"] = df_question["question_message_id"].astype(str)
+    df["go_to_message_id"] = df["go_to_message_id"].astype(str)
     df_reply = (
         df[df["go_to_message_id"].notnull()]
         .rename(
