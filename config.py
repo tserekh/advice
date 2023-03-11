@@ -1,5 +1,5 @@
 chats_path = "data/ChatExport*"
-vectors_path = "data/cc.ru.300.vec/cc.ru.300.vec"
+vectors_path = "data/cc.ru.300.vec"
 question_reply_path = "data/question_reply.csv"
 messages_path = "data/messages/*"
 token_path = "credentials/sochi.txt"
