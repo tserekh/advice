@@ -17,19 +17,20 @@ def tokenize(text):
     tokens = word_tokenize(text.lower(), language="russian")
     return list(set(tokens))
 
-# if os.path.exists(question_reply_path):
-#     question_reply = pd.read_csv(question_reply_path)
-# else:
-question_reply = pd.DataFrame()
-folders = glob.glob(config.chats_path)
-for path in glob.glob(config.messages_path):
-    chat = pd.read_csv(path, sep='\t', encoding='utf-8')
-    chat = add_question_mark(chat)
-    question_reply = question_reply.append(get_reply_mapping(chat))
-print(question_reply)
-questions_w_replies = question_reply[['question_message', 'question_message_id']].drop_duplicates()
-question_reply["question_tokens"] = question_reply['question_message'].apply(tokenize)
-question_reply.drop_duplicates().to_csv(config.question_reply_path, index=False, encoding='utf-8')
+if os.path.exists(config.question_reply_path):
+    question_reply = pd.read_csv(config.question_reply_path, encoding='utf-8', sep='\t')
+else:
+    question_reply = pd.DataFrame()
+    folders = glob.glob(config.chats_path)
+    for path in glob.glob(config.messages_path):
+        chat = pd.read_csv(path, sep='\t', encoding='utf-8')
+        chat = add_question_mark(chat)
+        question_reply = question_reply.append(get_reply_mapping(chat))
+    print(question_reply)
+    questions_w_replies = question_reply[['question_message', 'question_message_id']].drop_duplicates()
+    question_reply["question_tokens"] = question_reply['question_message'].apply(tokenize)
+    question_reply.drop_duplicates().to_csv(config.question_reply_path, index=False, encoding='utf-8', sep='\t')
+
 all_tokens = []
 for question_tokens in question_reply.drop_duplicates('question_message')['question_tokens'].values:
     all_tokens += question_tokens
