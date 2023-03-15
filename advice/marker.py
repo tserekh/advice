@@ -26,7 +26,7 @@ def single_message_mark(message):
         tokens = tokenize(text)
         question_score = get_question_score(tokens, coefs)
         model_mark = (question_score>config.min_question_score) and (len(tokens)<config.max_questions_tokens)
-        return int(("посовет" in message) or ("подскаж" in message) or model_mark)
+        return int(("посовет" in message.text) or ("подскаж" in message.text) or model_mark)
 
 
 def add_question_mark(data: pd.DataFrame)-> pd.DataFrame:
