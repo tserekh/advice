@@ -1,5 +1,5 @@
 import glob
-from typing import Dict
+from typing import Dict, Union
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -21,10 +21,10 @@ def get_message(message: str)->Dict:
 # папки с ChatExport
 sub_list = []
 
-def resave_data(i, folder) -> pd.DataFrame:
+def resave_data(i, folder):
     files = glob.glob(f"{folder}/*.html")
     messages = []
-    for file in tqdm(files):
+    for file in tqdm(files[::-1]):
         with open(file, encoding='utf-8') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
             messages_part = soup.body.find_all(attrs = {'class':'message'})
