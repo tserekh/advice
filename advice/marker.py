@@ -1,6 +1,6 @@
 import io
 import json
-from typing import Optional, List
+ssfrom typing import Optional, List, Dict
 
 import numpy as np
 import pandas as pd
@@ -14,34 +14,31 @@ def get_question_score(tokens, coefs) -> float:
     score = 0
     for token in tokens:
         if token in coefs:
-            score+=coefs[token]
+            score += coefs[token]
     return score
 
+
+def mark_question(text: str, coefs: Dict) -> int:
+    text = text.lower()
+    tokens = tokenize(text)
+    question_score = get_question_score(tokens, coefs)
+    model_mark = (question_score > config.min_question_score) and (len(tokens) < config.max_questions_tokens)
+    return int(("посовет" in text) or ("подскаж" in text) or model_mark)
 
 
 def single_message_mark(message):
     with open("data/models/coefs.json") as f:
         coefs = json.loads(f.read())
-        text = message.text.lower()
-        tokens = tokenize(text)
-        question_score = get_question_score(tokens, coefs)
-        model_mark = (question_score>config.min_question_score) and (len(tokens)<config.max_questions_tokens)
-        return int(("посовет" in message.text) or ("подскаж" in message.text) or model_mark)
+    return mark_question(message.text, coefs)
 
 
 def add_question_mark(data: pd.DataFrame)-> pd.DataFrame:
     target_name = "question"
     with open("data/models/coefs.json") as f:
         coefs = json.loads(f.read())
-    target_list = []
-    for message in data["message"].values:
-        tokens = tokenize(message)
-        question_score = get_question_score(tokens, coefs)
-        model_mark = (question_score>config.min_question_score) and (len(tokens)<config.max_questions_tokens)
-        target = int(("посовет" in message) or ("подскаж" in message) or model_mark)
-        target_list.append(target)
-    data[target_name] = target_list
+    data[target_name] = data["message"].apply(lambda x: mark_question(x, coefs))
     return data
+
 
 def get_reply_mapping(df: pd.DataFrame) -> pd.DataFrame:
     """ "message", "question", "go_to_message_id", "message_id"]] """
@@ -65,10 +62,8 @@ def get_reply_mapping(df: pd.DataFrame) -> pd.DataFrame:
     )
     return pd.merge(df_question, df_reply, on="question_message_id")
 
-class Similarity:
-    pass
 
-class FastText(Similarity):
+class FastText:
     def load_vectors(self, vectors_path: str, use_tokens: Optional[List[str]]):
         fin = io.open(vectors_path, 'r', encoding='utf-8', newline='\n', errors='ignore')
         # n, d = map(int, fin.readline().split())
