@@ -16,6 +16,11 @@ logger = getLogger()
 def tokenize(text):
     tokens = word_tokenize(text.lower(), language="russian")
     return list(set(tokens))
+# TODO:
+# folders = glob.glob(f"{config.chats_path}/*")
+# print(len(folders))
+# for i, folder in enumerate(folders):
+#     resave_data(i, folder)
 
 if os.path.exists(config.question_reply_path):
     question_reply = pd.read_csv(config.question_reply_path, encoding='utf-8', sep='\t')
@@ -33,14 +38,14 @@ question_reply["question_tokens"] = question_reply['question_message'].apply(tok
     .drop_duplicates(["question_message", "question_message_id"])
     .to_csv(config.question_reply_path, index=False, encoding='utf-8', sep='\t')
 )
-
+# TODO:
+# fit model
 all_tokens = []
 for question_tokens in question_reply.drop_duplicates('question_message')['question_tokens'].values:
     all_tokens += question_tokens
 
 vc = pd.Series(all_tokens).value_counts()
 use_tokens = set(vc.iloc[50:].index)
-# use_tokens = None
 fast_text = FastText(config.vectors_path, use_tokens)
 with open(config.token_path) as f:
     TOKEN = f.read()
