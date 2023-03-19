@@ -1,16 +1,16 @@
 import io
 import json
-from typing import Optional, List, Dict
-
+from typing import Optional, List, Dict, Iterable, Set
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import telebot
 
 import config
 from advice.tokenizers import tokenize
 
 
-def get_question_score(tokens, coefs) -> float:
+def get_question_score(tokens: Iterable[str], coefs: Dict[str, float]) -> float:
     score = 0
     for token in tokens:
         if token in coefs:
@@ -18,7 +18,7 @@ def get_question_score(tokens, coefs) -> float:
     return score
 
 
-def mark_question(text: str, coefs: Dict) -> int:
+def mark_question(text: str, coefs: Dict[str, float]) -> int:
     text = text.lower()
     tokens = tokenize(text)
     question_score = get_question_score(tokens, coefs)
@@ -26,15 +26,15 @@ def mark_question(text: str, coefs: Dict) -> int:
     return int(("посовет" in text) or ("подскаж" in text) or model_mark)
 
 
-def single_message_mark(message):
+def single_message_mark(message: telebot.types.message) -> int:
     with open("data/models/coefs.json") as f:
         coefs = json.loads(f.read())
     return mark_question(message.text, coefs)
 
 
-def add_question_mark(data: pd.DataFrame)-> pd.DataFrame:
+def add_question_mark(data: pd.DataFrame) -> pd.DataFrame:
     target_name = "question"
-    with open("data/models/coefs.json") as f:
+    with open(config.mark_model_coefs_path) as f:
         coefs = json.loads(f.read())
     data[target_name] = data["message"].apply(lambda x: mark_question(x, coefs))
     return data
@@ -64,9 +64,8 @@ def get_reply_mapping(df: pd.DataFrame) -> pd.DataFrame:
 
 
 class FastText:
-    def load_vectors(self, vectors_path: str, use_tokens: Optional[List[str]]):
+    def load_vectors(self, vectors_path: str, use_tokens: Optional[Set[str]]):
         fin = io.open(vectors_path, 'r', encoding='utf-8', newline='\n', errors='ignore')
-        # n, d = map(int, fin.readline().split())
         data = {}
         for line in tqdm(fin):
             tokens = line.rstrip().split(' ')
@@ -74,7 +73,7 @@ class FastText:
                 data[tokens[0]] = list(map(float, tokens[1:]))
         self.embeddings = data
 
-    def __init__(self, vectors_name: str,  use_tokens: List[str]):
+    def __init__(self, vectors_name: str,  use_tokens: Set[str]):
         self.vectors_name = vectors_name
         self.use_tokens = use_tokens
         self.load_vectors(self.vectors_name, self.use_tokens)
@@ -82,7 +81,7 @@ class FastText:
     def tokenizer(self):
         pass
 
-    def cosin(self, tokens1: List[str], tokens2: List[str]):
+    def cosin(self, tokens1: List[str], tokens2: List[str]) -> float:
         question_embedding = np.zeros(300)
         message_embedding = np.zeros(300)
         for token in tokens1:
