@@ -16,28 +16,7 @@ logger = getLogger()
 def tokenize(text):
     tokens = word_tokenize(text.lower(), language="russian")
     return list(set(tokens))
-# TODO:
-# folders = glob.glob(f"{config.chats_path}/*")
-# print(len(folders))
-# for i, folder in enumerate(folders):
-#     resave_data(i, folder)
 
-if os.path.exists(config.question_reply_path):
-    question_reply = pd.read_csv(config.question_reply_path, encoding='utf-8', sep='\t')
-else:
-    question_reply = pd.DataFrame()
-    folders = glob.glob(config.chats_path)
-    for path in glob.glob(config.messages_path):
-        chat = pd.read_csv(path, sep='\t', encoding='utf-8')
-        chat = add_question_mark(chat)
-        question_reply = question_reply.append(get_reply_mapping(chat))
-
-question_reply["question_tokens"] = question_reply['question_message'].apply(tokenize)
-(
-    question_reply
-    .drop_duplicates(["question_message", "question_message_id"])
-    .to_csv(config.question_reply_path, index=False, encoding='utf-8', sep='\t')
-)
 # TODO:
 # fit model
 all_tokens = []
@@ -48,9 +27,9 @@ vc = pd.Series(all_tokens).value_counts()
 use_tokens = set(vc.iloc[50:].index)
 fast_text = FastText(config.vectors_path, use_tokens)
 with open(config.token_path) as f:
-    TOKEN = f.read()
+    BOT_TOKEN = f.read()
 
-bot = telebot.TeleBot(TOKEN)
+bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(func=single_message_mark)
 def handle_message(message):

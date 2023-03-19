@@ -4,9 +4,10 @@ from typing import Dict, Union
 import pandas as pd
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+import telebot
 
 
-def get_message(message: str)->Dict:
+def get_message(message: telebot.types.message) -> Dict:
     dic = {}
     dic['message'] = message.text.split('\n\n')[-2]
     dic['message_id'] = message.get('id').replace('message', '')
@@ -18,8 +19,6 @@ def get_message(message: str)->Dict:
         dic['go_to_message_id'] = reply.find('a').get('href').replace('#go_to_message', '')
     return dic
 
-# папки с ChatExport
-sub_list = []
 
 def resave_data(i, folder):
     files = glob.glob(f"{folder}/*.html")

@@ -1,0 +1,7 @@
+numpy
+pandas
+telebot
+tqdm
+beautifulsoup4
+nltk
+glob
