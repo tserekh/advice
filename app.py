@@ -17,6 +17,7 @@ def tokenize(text):
 
 
 if __name__ == "__main__":
+    logger.info("start")
     question_reply = pd.read_csv(config.question_reply_path, sep="\t", encoding="utf-8")
     all_tokens = []
     for question_tokens in question_reply.drop_duplicates("question_message")[
