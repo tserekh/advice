@@ -19,29 +19,24 @@ def get_question_score(tokens: Iterable[str], coefs: Dict[str, float]) -> float:
 
 
 def mark_question(text: str, coefs: Dict[str, float]) -> int:
-    word_markers = [""]
     text = text.lower()
-    tokens = tokenize(text)
-    question_score = get_question_score(tokens, coefs)
-    mark = (question_score > config.min_question_score) and (
-        len(tokens) < config.max_questions_tokens
-    )
-    for word_marker in word_markers:
+    mark = False
+    for word_marker in config.word_markers:
         mark |= word_marker in text
     return mark
 
 
 def single_message_mark(message: telebot.types.Message) -> int:
-    with open("data/models/coefs.json") as f:
-        coefs = json.loads(f.read())
-    return mark_question(message.text, coefs)
+    #     with open("data/models/coefs.json") as f:
+    #         coefs = json.loads(f.read())
+    return mark_question(message.text, {})
 
 
 def add_question_mark(data: pd.DataFrame) -> pd.DataFrame:
     target_name = "question"
-    with open(config.mark_model_coefs_path) as f:
-        coefs = json.loads(f.read())
-    data[target_name] = data["message"].apply(lambda x: mark_question(x, coefs))
+    # with open(config.mark_model_coefs_path) as f:
+    #     coefs = json.loads(f.read())
+    data[target_name] = data["message"].apply(lambda x: mark_question(x, {}))
     return data
 
 

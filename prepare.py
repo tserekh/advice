@@ -11,8 +11,8 @@ from advice.tokenizers import tokenize
 if __name__ == "__main__":
     folders = glob.glob(f"{config.chats_path}/*")
 
-    for i, folder in enumerate(folders):
-        resave_data(i, folder)
+    # for i, folder in enumerate(folders):
+    #     resave_data(i, folder)
 
     if os.path.exists(config.question_reply_path):
         question_reply = pd.read_csv(
