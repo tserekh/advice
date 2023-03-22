@@ -33,6 +33,7 @@ if __name__ == "__main__":
     @bot.message_handler(func=single_message_mark)
     def handle_message(message):
         tokens = tokenize(message.text)
+        logger.info(f"Input message {message.text}")
         question_reply["cosin"] = question_reply["question_tokens"].apply(
             lambda tokens2: fast_text.cosin(tokens, tokens2)
         )
@@ -46,8 +47,8 @@ if __name__ == "__main__":
         reply_message = row["reply_message"]
         cosin = row["cosin"]
         question_message = row["question_message"]
-        bot.reply_to(
-            message, f"{reply_message}\nпохожесть: {cosin}\nВопрос: {question_message}"
-        )
+        reply = f"{reply_message}\nпохожесть: {cosin}\nВопрос: {question_message}"
+        logger.info(f"Reply {reply}")
+        bot.reply_to(message, reply)
 
     bot.polling()
