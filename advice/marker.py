@@ -19,14 +19,19 @@ def get_question_score(tokens: Iterable[str], coefs: Dict[str, float]) -> float:
 
 
 def mark_question(text: str, coefs: Dict[str, float]) -> int:
+    word_markers = [""]
     text = text.lower()
     tokens = tokenize(text)
     question_score = get_question_score(tokens, coefs)
-    model_mark = (question_score > config.min_question_score) and (len(tokens) < config.max_questions_tokens)
-    return int(("посовет" in text) or ("подскаж" in text) or model_mark)
+    mark = (question_score > config.min_question_score) and (
+        len(tokens) < config.max_questions_tokens
+    )
+    for word_marker in word_markers:
+        mark |= word_marker in text
+    return mark
 
 
-def single_message_mark(message: telebot.types.message) -> int:
+def single_message_mark(message: telebot.types.Message) -> int:
     with open("data/models/coefs.json") as f:
         coefs = json.loads(f.read())
     return mark_question(message.text, coefs)
@@ -41,45 +46,43 @@ def add_question_mark(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_reply_mapping(df: pd.DataFrame) -> pd.DataFrame:
-    """ "message", "question", "go_to_message_id", "message_id"]] """
-    df_question = (
-        df[df["question"]==1]
-        .rename(columns={"message": "question_message", "message_id": "question_message_id"})
-        [["question_message", "question_message_id"]]
-
-    )
+    """ "message", "question", "go_to_message_id", "message_id"]]"""
+    df_question = df[df["question"] == 1].rename(
+        columns={"message": "question_message", "message_id": "question_message_id"}
+    )[["question_message", "question_message_id"]]
     df_question["question_message_id"] = df_question["question_message_id"].astype(str)
     df["go_to_message_id"] = df["go_to_message_id"].astype(str)
-    df_reply = (
-        df[df["go_to_message_id"].notnull()]
-        .rename(
-            columns={
-                "message": "reply_message",
-                "message_id": "reply_message_id",
-                "go_to_message_id": "question_message_id"
-            }
-        )[["reply_message", "reply_message_id", "question_message_id"]]
-    )
+    df_reply = df[df["go_to_message_id"].notnull()].rename(
+        columns={
+            "message": "reply_message",
+            "message_id": "reply_message_id",
+            "go_to_message_id": "question_message_id",
+        }
+    )[["reply_message", "reply_message_id", "question_message_id"]]
     return pd.merge(df_question, df_reply, on="question_message_id")
 
 
 class FastText:
     def load_vectors(self, vectors_path: str, use_tokens: Optional[Set[str]]):
-        fin = io.open(vectors_path, 'r', encoding='utf-8', newline='\n', errors='ignore')
+        if not use_tokens:
+            use_tokens = set()
+        fin = io.open(
+            vectors_path, "r", encoding="utf-8", newline="\n", errors="ignore"
+        )
         data = {}
         for line in tqdm(fin):
-            tokens = line.rstrip().split(' ')
+            tokens = line.rstrip().split(" ")
             if use_tokens and (tokens[0] in use_tokens):
                 data[tokens[0]] = list(map(float, tokens[1:]))
-        self.embeddings = data
+        return data
 
-    def __init__(self, vectors_name: str,  use_tokens: Set[str]):
+    def __init__(self, vectors_name: str, use_tokens: Optional[Set[str]] = None):
         self.vectors_name = vectors_name
-        self.use_tokens = use_tokens
-        self.load_vectors(self.vectors_name, self.use_tokens)
-
-    def tokenizer(self):
-        pass
+        if use_tokens:
+            self.use_tokens = use_tokens
+        else:
+            self.use_tokens = set()
+        self.embeddings = self.load_vectors(self.vectors_name, self.use_tokens)
 
     def cosin(self, tokens1: List[str], tokens2: List[str]) -> float:
         question_embedding = np.zeros(300)
@@ -91,8 +94,9 @@ class FastText:
             if token in self.embeddings:
                 message_embedding += np.array(self.embeddings[token])
         cos_sim = np.dot(question_embedding, message_embedding) / (
-                    np.linalg.norm(question_embedding) * np.linalg.norm(message_embedding))
+            np.linalg.norm(question_embedding) * np.linalg.norm(message_embedding)
+        )
         if cos_sim:
             return cos_sim
         else:
-            return 0
+            return 0.0
