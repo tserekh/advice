@@ -1,6 +1,5 @@
 chats_path = "data/ChatExport*"
-# vectors_path = "data/cc.ru.300.vec"
-vectors_path = "D:/cc.ru.300.vec/cc.ru.300.vec"
+vectors_path = "data/cc.ru.300.vec"
 word_markers = ["посовет", "подскаж"]
 
 question_reply_path = "data/question_reply.tsv"
