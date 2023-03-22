@@ -23,9 +23,7 @@ if __name__ == "__main__":
         "question_tokens"
     ].values:
         all_tokens += question_tokens
-    vc = pd.Series(all_tokens).value_counts()
-    use_tokens = set(vc.iloc[50:].index)
-    fast_text = FastText(config.vectors_path, use_tokens)
+    fast_text = FastText(config.vectors_path, set(all_tokens))
     with open(config.token_path) as f:
         BOT_TOKEN = f.read()
     bot = telebot.TeleBot(BOT_TOKEN)
@@ -50,5 +48,5 @@ if __name__ == "__main__":
         reply = f"{reply_message}\nпохожесть: {cosin}\nВопрос: {question_message}"
         logger.info(f"Reply {reply}")
         bot.reply_to(message, reply)
-
+    logger.info("ready")
     bot.polling()
