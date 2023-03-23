@@ -8,6 +8,6 @@
 Поиграться можно здесь:
 https://t.me/sochi_gpt_bot
 
-Примеры:
+Примеры. Ответы бывают разной степени полезности.
 
-<img width="600" src="https://user-images.githubusercontent.com/22646265/227275921-259c9965-3342-4133-a4d1-4dd621f120ce.png">
+<img width="600" src="https://user-images.githubusercontent.com/22646265/227279420-f271985f-baa7-4387-b9bd-56678613a0bd.png">
