@@ -7,3 +7,4 @@
 
 Поиграться можно здесь:
 https://t.me/sochi_gpt_bot
+![image](https://user-images.githubusercontent.com/22646265/227275921-259c9965-3342-4133-a4d1-4dd621f120ce.png)
