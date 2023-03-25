@@ -61,5 +61,5 @@ def handle_message(message):
 
 try:
     bot.polling()
-except as e:
+except Exception as e:
     logger.exception(e)
