@@ -2,11 +2,22 @@ import ast
 
 import pandas as pd
 import telebot
+import logging
 
 import config
 from advice.marker import FastText
 from advice.marker import single_message_mark
 from advice.tokenizers import tokenize
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler(config.log_path),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 question_reply = pd.read_csv(config.question_reply_path, sep="\t", encoding="utf-8")
 question_reply["question_tokens"] = question_reply["question_tokens"].apply(
@@ -27,6 +38,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(func=single_message_mark)
 def handle_message(message):
+    logger.info(f"Received message: {message.text}")
     tokens = tokenize(message.text)
     question_reply["cosin"] = (
         question_reply["question_tokens"]
@@ -45,6 +57,8 @@ def handle_message(message):
     else:
         reply = "не знаю"
     bot.reply_to(message, reply)
+    logger.info(f"Sent reply: {reply}")
+
 
 
 bot.polling()
