@@ -59,6 +59,7 @@ def handle_message(message):
     bot.reply_to(message, reply)
     logger.info(f"Sent reply: {reply}")
 
+
 try:
     bot.polling()
 except Exception as e:
