@@ -60,7 +60,8 @@ def handle_message(message):
     logger.info(f"Sent reply: {reply}")
 
 
-try:
-    bot.polling()
-except Exception as e:
-    logger.exception(e)
+while True:
+    try:
+        bot.polling()
+    except Exception as e:
+        logger.exception(e)
