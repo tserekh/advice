@@ -8,6 +8,7 @@ import config
 from advice.marker import FastText
 from advice.marker import single_message_mark
 from advice.tokenizers import tokenize
+from advice.marker import get_locations
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,6 +21,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 question_reply = pd.read_csv(config.question_reply_path, sep="\t", encoding="utf-8")
+
+
+question_reply["question_locations"] = question_reply["question_message"].apply(get_locations)
 question_reply["question_tokens"] = question_reply["question_tokens"].apply(
     ast.literal_eval
 )
@@ -39,19 +43,24 @@ bot = telebot.TeleBot(BOT_TOKEN)
 @bot.message_handler(func=single_message_mark)
 def handle_message(message):
     logger.info(f"Received message: {message.text}")
+    received_message_locations = get_locations(message.text)
     tokens = tokenize(message.text)
     question_reply["cosin"] = (
         question_reply["question_tokens"]
         .apply(lambda tokens2: fast_text.cosin(tokens, tokens2))
         .fillna(0)
     )
-    df_notnull = question_reply.sort_values("cosin")
+    question_reply["if_locations_intersect"] = (
+        question_reply["question_locations"].apply(lambda x: bool(x & received_message_locations))
+    )
+
+    df_notnull = question_reply[question_reply["if_locations_intersect"]].sort_values("cosin")
     if len(df_notnull) > 0:
         row = df_notnull.iloc[-1]
         cosin = row["cosin"]
         reply_message = row["reply_message"]
         question_message = row["question_message"]
-        reply = f"{reply_message}\nпохожесть: {cosin}\nВопрос: {question_message}"
+        reply = f"{reply_message}\nпохожесть: {round(cosin, 2)}\nВопрос: {question_message}"
         if cosin < config.min_cosin:
             reply = f"не уверен, но:\n{reply}"
     else:

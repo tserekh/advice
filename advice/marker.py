@@ -95,3 +95,14 @@ class FastText:
             return cos_sim
         else:
             return 0.0
+
+
+def get_locations(message: str) -> set:
+    locations = set()
+    for location in config.locations:
+        if location in message.lower():
+            locations.add(location)
+    if locations:
+        return locations
+    else:
+        return config.locations
