@@ -105,4 +105,4 @@ def get_locations(message: str) -> set:
     if locations:
         return locations
     else:
-        return set(config.locations)
+        return {"no_location"}
