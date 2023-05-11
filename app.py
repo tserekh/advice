@@ -55,7 +55,7 @@ def handle_message(message):
         question_reply["question_locations"].apply(lambda x: bool(x & received_message_locations))
     )
 
-    df_notnull = question_reply[question_reply["if_locations_intersect"]].sort_values("cosin")
+    df_notnull = question_reply[question_reply["if_locations_intersect"]].sort_values("similarity")
     if len(df_notnull) > 0:
         row = df_notnull.iloc[-1]
         similarity = row["similarity"]
