@@ -48,7 +48,7 @@ def handle_message(message):
     tokens = tokenize(message.text)
     question_reply["similarity"] = (
         question_reply["question_tokens"]
-        .apply(lambda tokens2: fast_text.minus_distance(tokens, tokens2))
+        .apply(lambda tokens2: fast_text.cosin(tokens, tokens2))
         .fillna(0)
     )
     question_reply["if_locations_intersect"] = (
