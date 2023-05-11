@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import telebot
-
+import fasttext
 import config
 from advice.tokenizers import tokenize
 
@@ -57,7 +57,7 @@ def get_reply_mapping(df: pd.DataFrame) -> pd.DataFrame:
     return pd.merge(df_question, df_reply, on="question_message_id")
 
 
-class FastText:
+class FastTextOld:
     def load_vectors(self, vectors_path: str, use_tokens: Optional[Set[str]]):
         if not use_tokens:
             use_tokens = set()
@@ -88,6 +88,31 @@ class FastText:
         for token in tokens2:
             if token in self.embeddings:
                 message_embedding += np.array(self.embeddings[token])
+        cos_sim = np.dot(question_embedding, message_embedding) / (
+            np.linalg.norm(question_embedding) * np.linalg.norm(message_embedding)
+        )
+        if cos_sim:
+            return cos_sim
+        else:
+            return 0.0
+
+
+class FastText:
+    def __init__(self, vectors_name: str, use_tokens: Optional[Set[str]] = None):
+        self.vectors_name = vectors_name
+        if use_tokens:
+            self.use_tokens = use_tokens
+        else:
+            self.use_tokens = set()
+        self.ft = fasttext.load_model("/root/cc.ru.50.bin")
+
+    def cosin(self, tokens1: List[str], tokens2: List[str]) -> float:
+        question_embedding = np.zeros(50)
+        message_embedding = np.zeros(50)
+        for token in tokens1:
+            question_embedding += np.array(self.ft.get_word_vector(token))
+        for token in tokens2:
+            message_embedding += np.array(self.ft.get_word_vector(token))
         cos_sim = np.dot(question_embedding, message_embedding) / (
             np.linalg.norm(question_embedding) * np.linalg.norm(message_embedding)
         )
