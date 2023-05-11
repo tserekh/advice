@@ -7,6 +7,7 @@ from tqdm import tqdm
 import telebot
 import fasttext
 import config
+from sklearn.metrics import mean_squared_error
 from advice.tokenizers import tokenize
 
 
@@ -119,6 +120,20 @@ class FastText:
             return cos_sim
         else:
             return 0.0
+
+    def minus_distance(self, tokens1: List[str], tokens2: List[str]) -> float:
+        question_embedding = np.zeros(300)
+        message_embedding = np.zeros(300)
+        for token in tokens1:
+            question_embedding += np.array(self.ft.get_word_vector(token))
+        for token in tokens2:
+            message_embedding += np.array(self.ft.get_word_vector(token))
+        distance = mean_squared_error(question_embedding, message_embedding)**0.5
+        if distance:
+            return - distance
+        else:
+            return -301.0
+
 
 
 def get_locations(message: str) -> set:

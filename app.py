@@ -46,9 +46,9 @@ def handle_message(message):
     logger.info(f"Received message: {message.text}")
     received_message_locations = get_locations(message.text)
     tokens = tokenize(message.text)
-    question_reply["cosin"] = (
+    question_reply["similarity"] = (
         question_reply["question_tokens"]
-        .apply(lambda tokens2: fast_text.cosin(tokens, tokens2))
+        .apply(lambda tokens2: fast_text.minus_distance(tokens, tokens2))
         .fillna(0)
     )
     question_reply["if_locations_intersect"] = (
@@ -58,11 +58,11 @@ def handle_message(message):
     df_notnull = question_reply[question_reply["if_locations_intersect"]].sort_values("cosin")
     if len(df_notnull) > 0:
         row = df_notnull.iloc[-1]
-        cosin = row["cosin"]
+        similarity = row["similarity"]
         reply_message = row["reply_message"]
         question_message = row["question_message"]
-        reply = f"{reply_message}\nпохожесть: {round(cosin, 2)}\nВопрос: {question_message}"
-        if cosin < config.min_cosin:
+        reply = f"{reply_message}\nпохожесть: {round(similarity, 2)}\nВопрос: {question_message}"
+        if similarity < config.min_cosin:
             reply = f"не уверен, но:\n{reply}"
     else:
         reply = "не знаю"
