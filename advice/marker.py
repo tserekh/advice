@@ -106,8 +106,8 @@ class FastText:
         self.ft = fasttext.load_model("/root/cc.ru.300.bin")
 
     def cosin(self, tokens1: List[str], tokens2: List[str]) -> float:
-        question_embedding = np.zeros(50)
-        message_embedding = np.zeros(50)
+        question_embedding = np.zeros(300)
+        message_embedding = np.zeros(300)
         for token in tokens1:
             question_embedding += np.array(self.ft.get_word_vector(token))
         for token in tokens2:
