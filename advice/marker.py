@@ -98,8 +98,7 @@ class FastTextOld:
 
 
 class FastText:
-    def __init__(self, vectors_name: str, use_tokens: Optional[Set[str]] = None):
-        self.vectors_name = vectors_name
+    def __init__(self, use_tokens: Optional[Set[str]] = None):
         if use_tokens:
             self.use_tokens = use_tokens
         else:

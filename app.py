@@ -5,7 +5,7 @@ import telebot
 import logging
 
 import config
-from advice.marker import FastTextOld
+from advice.marker import FastText
 from advice.marker import single_message_mark
 from advice.tokenizers import tokenize
 from advice.marker import get_locations
@@ -34,7 +34,8 @@ for question_tokens in question_reply.drop_duplicates("question_message")[
     all_tokens += question_tokens
 vc = pd.Series(all_tokens).value_counts()
 use_tokens = set(vc.iloc[50:].index)
-fast_text = FastTextOld(config.vectors_path, set(use_tokens))
+# fast_text = FastTextOld(config.vectors_path, set(use_tokens))
+fast_text = FastText(set(use_tokens))
 with open(config.token_path) as f:
     BOT_TOKEN = f.read()
 bot = telebot.TeleBot(BOT_TOKEN)
