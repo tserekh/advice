@@ -103,7 +103,7 @@ class FastText:
             self.use_tokens = use_tokens
         else:
             self.use_tokens = set()
-        self.ft = fasttext.load_model("/root/cc.ru.50.bin")
+        self.ft = fasttext.load_model("/root/cc.ru.300.bin")
 
     def cosin(self, tokens1: List[str], tokens2: List[str]) -> float:
         question_embedding = np.zeros(50)

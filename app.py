@@ -73,5 +73,7 @@ def handle_message(message):
 while True:
     try:
         bot.polling()
+    except KeyboardInterrupt:
+        raise
     except Exception as e:
         logger.exception(e)
