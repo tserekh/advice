@@ -1,11 +1,27 @@
-chats_path = "data/ChatExport*"
-vectors_path = "data/cc.ru.300.vec"
-word_markers = ["посовет", "подскаж"]
+# RAG Configuration for SochiGPT
 
+# Paths
+chats_path = "data/ChatExport*"
 question_reply_path = "data/question_reply.tsv"
 messages_path = "data/messages"
 token_path = "credentials/sochi.txt"
-mark_model_coefs_path = "data/models/coefs.json"
+vector_db_path = "data/vector_db"
+model_path = "models/llama-2-7b-chat.Q4_K_M.gguf"
+
+# Embedding model (lightweight for weak servers)
+embedding_model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+# LLM settings
+llm_n_ctx = 2048  # Context window size
+llm_n_threads = 2  # CPU threads (adjust based on your server)
+llm_n_batch = 512  # Batch size for inference
+
+# RAG settings
+top_k_retrieval = 3  # Number of documents to retrieve
+min_similarity_threshold = 0.5  # Minimum similarity score for retrieval
+
+# Legacy settings (for compatibility)
+word_markers = ["посовет", "подскаж"]
 max_questions_tokens = 35
 min_question_score = 100.0
 min_cosin = 0.85
