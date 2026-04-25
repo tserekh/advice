@@ -31,6 +31,10 @@ def prepare_legacy_data():
             chat = add_question_mark(chat)
             question_reply = question_reply.append(get_reply_mapping(chat))
 
+    if len(question_reply) == 0 or "question_message" not in question_reply.columns:
+        print("Warning: No Q&A data found from legacy sources.")
+        return pd.DataFrame()
+
     question_reply["question_tokens"] = question_reply["question_message"].apply(
         tokenize
     )
@@ -103,6 +107,19 @@ if __name__ == "__main__":
     else:
         print("Running legacy data preparation...")
         question_reply = prepare_legacy_data()
+        
+        # Fallback to test data if legacy preparation returned empty
+        if len(question_reply) == 0 and os.path.exists("data/qa_dataset.csv"):
+            print("\nNo legacy data found. Loading test dataset from data/qa_dataset.csv...")
+            question_reply = pd.read_csv("data/qa_dataset.csv")
+            question_reply.to_csv(config.question_reply_path, index=False, encoding="utf-8", sep="\t")
+            print(f"Saved {len(question_reply)} Q&A pairs to {config.question_reply_path}")
+    
+    # Check if we have any data to index
+    if len(question_reply) == 0:
+        print("\nError: No Q&A data available for indexing.")
+        print("Please add your data to data/qa_dataset.csv or provide chat exports.")
+        exit(1)
     
     # Step 2: Index for RAG
     print("\nStep 2: Indexing documents for RAG...")

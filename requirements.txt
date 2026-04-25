@@ -1,4 +1,4 @@
-# Core dependencies
+# Core dependencies (required)
 numpy<2.0
 pandas>=1.0
 telebot
@@ -6,10 +6,13 @@ tqdm
 beautifulsoup4
 nltk
 
-# RAG components
-sentence-transformers>=2.2.0
-chromadb>=0.4.0
-llama-cpp-python>=0.2.0
+# RAG components - FULL version (requires ~500MB disk, ~1GB RAM)
+# sentence-transformers>=2.2.0
+# chromadb>=0.4.0
+# llama-cpp-python>=0.2.0
+
+# For SIMPLE version (low-resource, ~50MB RAM, ~100MB disk)
+# No additional dependencies needed beyond core!
 
 # Utilities
 black
