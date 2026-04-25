@@ -26,7 +26,6 @@ def prepare_legacy_data():
         )
     else:
         question_reply = pd.DataFrame()
-        folders = glob.glob(config.chats_path)
         for path in glob.glob(f"{config.messages_path}/*"):
             chat = pd.read_csv(path, sep="\t", encoding="utf-8")
             chat = add_question_mark(chat)
