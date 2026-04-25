@@ -25,12 +25,22 @@ def get_message(message: telebot.types.Message) -> Dict:
 def resave_data(i, folder):
     files = glob.glob(f"{folder}/*.html")
     messages = []
+    chat_name = None
+    
     for file in tqdm(files[::-1]):
         with open(file, encoding="utf-8") as f:
             soup = BeautifulSoup(f.read(), "html.parser")
             messages_part = soup.body.find_all(attrs={"class": "message"})
+            # Извлекаем имя чата из первого файла
+            if chat_name is None:
+                name_tag = soup.find(attrs={"class": "text bold"})
+                if name_tag:
+                    chat_name = name_tag.text
         messages += messages_part
-    chat_name = soup.find(attrs={"class", "text bold"}).text
+    
+    if not messages or chat_name is None:
+        print(f"Warning: No messages or chat name found in {folder}, skipping...")
+        return
     df = pd.DataFrame(list(map(get_message, messages)))
     df["chat_name"] = chat_name
 
