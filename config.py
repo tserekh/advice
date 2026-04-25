@@ -6,7 +6,7 @@ question_reply_path = "data/question_reply.tsv"
 messages_path = "data/messages"
 token_path = "credentials/sochi.txt"
 vector_db_path = "data/vector_db"
-model_path = "models/llama-2-7b-chat.Q4_K_M.gguf"
+model_path = "models/phi-2.Q4_K_M.gguf"
 
 # Embedding model (lightweight for weak servers with limited disk space)
 # Using a small multilingual model that fits in ~100MB
