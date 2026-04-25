@@ -1,33 +1,23 @@
 ```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+
 # Dependencies
 .venv/
 venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Logs and temp files
-*.log
-*.tmp
-
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-
-# OS
-.DS_Store
-Thumbs.db
 ```
