@@ -1,46 +1,9 @@
 ```
-# Compiled Python files
-*.pyc
-__pycache__/
-
-# Dependencies
-.venv/
-venv/
-env/
-pip-log.txt
-pip-selfcheck.json
-
-# Logs
-*.log
-
-# Environment variables
+# Environment files
 .env
 .env.local
 *.env.*
 
-# Coverage reports
-.coverage
-htmlcov/
-.coverage.*
-coverage.xml
-
-# Testing
-.pytest_cache/
-.hypothesis/
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-.eggs/
+# Credentials and sensitive files
+credentials/
 ```

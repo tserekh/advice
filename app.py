@@ -4,6 +4,7 @@ Retrieval-Augmented Generation for Q&A support
 """
 
 import os
+from dotenv import load_dotenv
 import telebot
 from typing import Optional
 
@@ -13,9 +14,13 @@ from llm_generator import LLMGenerator
 from advice.tokenizers import tokenize
 from advice.marker import mark_question
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Initialize bot
-with open(config.token_path) as f:
-    BOT_TOKEN = f.read().strip()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN не найден. Пожалуйста, создайте файл .env и укажите токен.")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
