@@ -9,7 +9,12 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
 import config
+import httpx
 
+# Временное отключение системных прокси для загрузки моделей
+# Сохраняем оригинальные значения
+_original_http_proxy = os.environ.get('HTTP_PROXY')
+_original_https_proxy = os.environ.get('HTTPS_PROXY')
 
 class EmbeddingModel:
     """Lightweight multilingual embedding model"""
@@ -17,8 +22,22 @@ class EmbeddingModel:
     def __init__(self, model_name: str = None):
         self.model_name = model_name or config.embedding_model_name
         print(f"Loading embedding model: {self.model_name}")
-        self.model = SentenceTransformer(self.model_name)
-        print("Embedding model loaded successfully")
+        
+        # Временно очищаем переменные окружения прокси для скачивания модели
+        if _original_http_proxy:
+            os.environ.pop('HTTP_PROXY', None)
+        if _original_https_proxy:
+            os.environ.pop('HTTPS_PROXY', None)
+        
+        try:
+            self.model = SentenceTransformer(self.model_name)
+            print("Embedding model loaded successfully")
+        finally:
+            # Восстанавливаем прокси обратно
+            if _original_http_proxy:
+                os.environ['HTTP_PROXY'] = _original_http_proxy
+            if _original_https_proxy:
+                os.environ['HTTPS_PROXY'] = _original_https_proxy
     
     def encode(self, texts: List[str]) -> List[List[float]]:
         """Encode texts into embeddings"""
