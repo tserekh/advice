@@ -30,7 +30,24 @@ class EmbeddingModel:
             os.environ.pop('HTTPS_PROXY', None)
         
         try:
-            self.model = SentenceTransformer(self.model_name)
+            # Создаем httpx клиент без прокси для загрузки модели
+            # Это нужно потому что httpx кэширует настройки прокси
+            import huggingface_hub
+            from huggingface_hub import HfFolder
+            
+            # Устанавливаем транспорт без прокси для huggingface
+            http_client = httpx.Client(
+                verify=True,
+                follow_redirects=True,
+                proxy=None  # Явно отключаем прокси
+            )
+            
+            # Передаем клиент в huggingface_hub через kwargs
+            self.model = SentenceTransformer(
+                self.model_name,
+                trust_remote_code=False,
+                transport=http_client
+            )
             print("Embedding model loaded successfully")
         finally:
             # Восстанавливаем прокси обратно
