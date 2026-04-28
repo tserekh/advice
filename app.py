@@ -34,7 +34,8 @@ http_proxy = os.getenv("HTTP_PROXY")
 https_proxy = os.getenv("HTTPS_PROXY")
 
 if http_proxy or https_proxy:
-    proxy_url = http_proxy or https_proxy
+    # Заменяем socks5:// на socks5h:// для DNS через прокси
+    proxy_url = (http_proxy or https_proxy).replace('socks5://', 'socks5h://')
     logger.info(f"Использование прокси: {proxy_url}")
     proxies = {
         'http': proxy_url,
@@ -42,8 +43,8 @@ if http_proxy or https_proxy:
     }
     apihelper.proxy = proxies
     # Увеличиваем таймауты для нестабильного соединения
-    apihelper.CONNECT_TIMEOUT = 30
-    apihelper.READ_TIMEOUT = 60
+    apihelper.CONNECT_TIMEOUT = 60
+    apihelper.READ_TIMEOUT = 120
 else:
     logger.info("Прокси не настроен, работа без прокси.")
 
