@@ -9,8 +9,6 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
 import config
-import httpx
-from huggingface_hub import configure_http_backend
 
 class EmbeddingModel:
     """Lightweight multilingual embedding model"""
@@ -19,14 +17,8 @@ class EmbeddingModel:
         self.model_name = model_name or config.embedding_model_name
         print(f"Loading embedding model: {self.model_name}")
         
-        # Настраиваем HTTP-клиент для Hugging Face без прокси
-        def get_client():
-            return httpx.Client(trust_env=False)
-        
-        configure_http_backend(get_client=get_client)
-        
         try:
-            # Модель загрузится напрямую, так как мы отключили прокси для HF
+            # Модель загрузится через прокси, указанную в переменных окружения
             self.model = SentenceTransformer(
                 self.model_name,
                 trust_remote_code=False
