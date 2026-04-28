@@ -31,12 +31,9 @@ class EmbeddingModel:
         
         try:
             # Модель загрузится напрямую, так как мы временно очистили переменные окружения прокси
-            # Дополнительно указываем trust_env=False, чтобы игнорировать любые системные прокси
-            import httpx
             self.model = SentenceTransformer(
                 self.model_name,
-                trust_remote_code=False,
-                transport_kwargs={"trust_env": False}
+                trust_remote_code=False
             )
             print("Embedding model loaded successfully")
         except Exception as e:
