@@ -10,11 +10,7 @@ import chromadb
 from chromadb.config import Settings
 import config
 import httpx
-
-# Временное отключение системных прокси для загрузки моделей
-# Сохраняем оригинальные значения
-_original_http_proxy = os.environ.get('HTTP_PROXY')
-_original_https_proxy = os.environ.get('HTTPS_PROXY')
+from huggingface_hub import configure_http_backend
 
 class EmbeddingModel:
     """Lightweight multilingual embedding model"""
@@ -23,14 +19,14 @@ class EmbeddingModel:
         self.model_name = model_name or config.embedding_model_name
         print(f"Loading embedding model: {self.model_name}")
         
-        # Временно очищаем переменные окружения прокси для скачивания модели
-        if _original_http_proxy:
-            os.environ.pop('HTTP_PROXY', None)
-        if _original_https_proxy:
-            os.environ.pop('HTTPS_PROXY', None)
+        # Настраиваем HTTP-клиент для Hugging Face без прокси
+        def get_client():
+            return httpx.Client(trust_env=False)
+        
+        configure_http_backend(get_client=get_client)
         
         try:
-            # Модель загрузится напрямую, так как мы временно очистили переменные окружения прокси
+            # Модель загрузится напрямую, так как мы отключили прокси для HF
             self.model = SentenceTransformer(
                 self.model_name,
                 trust_remote_code=False
@@ -39,12 +35,6 @@ class EmbeddingModel:
         except Exception as e:
             print(f"Error loading model: {e}")
             raise
-        finally:
-            # Восстанавливаем прокси обратно
-            if _original_http_proxy:
-                os.environ['HTTP_PROXY'] = _original_http_proxy
-            if _original_https_proxy:
-                os.environ['HTTPS_PROXY'] = _original_https_proxy
     
     def encode(self, texts: List[str]) -> List[List[float]]:
         """Encode texts into embeddings"""
