@@ -1,50 +1,95 @@
-import ast
+"""
+SochiGPT - RAG-based Telegram Bot
+Retrieval-Augmented Generation for Q&A support
+"""
 
-import pandas as pd
+import os
 import telebot
+from typing import Optional
 
 import config
-from advice.marker import FastText
-from advice.marker import single_message_mark
+from rag_engine import RAGEngine
+from llm_generator import LLMGenerator
 from advice.tokenizers import tokenize
+from advice.marker import mark_question
 
-question_reply = pd.read_csv(config.question_reply_path, sep="\t", encoding="utf-8")
-question_reply["question_tokens"] = question_reply["question_tokens"].apply(
-    ast.literal_eval
-)
-all_tokens = []
-for question_tokens in question_reply.drop_duplicates("question_message")[
-    "question_tokens"
-].values:
-    all_tokens += question_tokens
-vc = pd.Series(all_tokens).value_counts()
-use_tokens = set(vc.iloc[50:].index)
-fast_text = FastText(config.vectors_path, set(use_tokens))
+# Initialize bot
 with open(config.token_path) as f:
-    BOT_TOKEN = f.read()
+    BOT_TOKEN = f.read().strip()
+
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# Initialize RAG components
+print("Initializing RAG Engine...")
+rag_engine = RAGEngine()
 
-@bot.message_handler(func=single_message_mark)
+print("Initializing LLM Generator...")
+llm_generator = LLMGenerator()
+
+# Check if we need to index documents
+def ensure_indexed():
+    """Check if vector store has documents, index if empty"""
+    if rag_engine.vector_store.get_count() == 0:
+        print("Vector store is empty. Please run prepare.py to index documents.")
+        return False
+    return True
+
+
+@bot.message_handler(func=lambda message: mark_question(message.text, {}))
 def handle_message(message):
-    tokens = tokenize(message.text)
-    question_reply["cosin"] = (
-        question_reply["question_tokens"]
-        .apply(lambda tokens2: fast_text.cosin(tokens, tokens2))
-        .fillna(0)
-    )
-    df_notnull = question_reply.sort_values("cosin")
-    if len(df_notnull) > 0:
-        row = df_notnull.iloc[-1]
-        cosin = row["cosin"]
-        reply_message = row["reply_message"]
-        question_message = row["question_message"]
-        reply = f"{reply_message}\nпохожесть: {cosin}\nВопрос: {question_message}"
-        if cosin < config.min_cosin:
-            reply = f"не уверен, но:\n{reply}"
+    """Handle user questions with RAG pipeline"""
+    user_query = message.text.strip()
+    
+    # Check if indexed
+    if not ensure_indexed():
+        bot.reply_to(
+            message,
+            "База знаний пуста. Пожалуйста, запустите подготовку данных через prepare.py"
+        )
+        return
+    
+    # Retrieve relevant documents
+    retrieved_docs = rag_engine.retrieve(user_query, top_k=config.top_k_retrieval)
+    
+    if not retrieved_docs:
+        # No relevant documents found
+        reply = "Извините, я не нашел подходящего ответа в базе знаний.\nПопробуйте переформулировать вопрос."
+        bot.reply_to(message, reply)
+        return
+    
+    # Generate response using LLM (or fallback to retrieval-only)
+    if llm_generator.is_available():
+        # Use LLM to generate a contextual response
+        response = llm_generator.generate_rag_response(
+            query=user_query,
+            retrieved_docs=retrieved_docs,
+            max_tokens=300
+        )
     else:
-        reply = "не знаю"
-    bot.reply_to(message, reply)
+        # Retrieval-only mode
+        best_match = retrieved_docs[0]
+        similarity = best_match['similarity']
+        response = best_match['answer']
+        
+        # Add metadata for transparency
+        if similarity < config.min_cosin:
+            response = f"Не уверен, но:\n{response}"
+        response += f"\n\nпохожесть: {similarity:.2f}\nВопрос: {best_match['question']}"
+    
+    bot.reply_to(message, response)
 
 
-bot.polling()
+def main():
+    """Start the bot"""
+    print("=" * 50)
+    print("SochiGPT RAG Bot Started")
+    print(f"LLM Available: {llm_generator.is_available()}")
+    print(f"Documents in vector store: {rag_engine.vector_store.get_count()}")
+    print("=" * 50)
+    
+    # Start polling
+    bot.polling(none_stop=True, interval=1)
+
+
+if __name__ == "__main__":
+    main()
