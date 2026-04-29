@@ -10,15 +10,23 @@ import chromadb
 from chromadb.config import Settings
 import config
 
-
 class EmbeddingModel:
     """Lightweight multilingual embedding model"""
     
     def __init__(self, model_name: str = None):
         self.model_name = model_name or config.embedding_model_name
         print(f"Loading embedding model: {self.model_name}")
-        self.model = SentenceTransformer(self.model_name)
-        print("Embedding model loaded successfully")
+        
+        try:
+            # Модель загрузится через прокси, указанную в переменных окружения
+            self.model = SentenceTransformer(
+                self.model_name,
+                trust_remote_code=False
+            )
+            print("Embedding model loaded successfully")
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            raise
     
     def encode(self, texts: List[str]) -> List[List[float]]:
         """Encode texts into embeddings"""
