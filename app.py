@@ -4,7 +4,11 @@ Retrieval-Augmented Generation for Q&A support
 """
 
 import os
+import time
+import logging
+from dotenv import load_dotenv
 import telebot
+from telebot import apihelper
 from typing import Optional
 
 import config
@@ -13,10 +17,54 @@ from llm_generator import LLMGenerator
 from advice.tokenizers import tokenize
 from advice.marker import mark_question
 
-# Initialize bot
-with open(config.token_path) as f:
-    BOT_TOKEN = f.read().strip()
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Initialize bot
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN не найден. Пожалуйста, создайте файл .env и укажите токен.")
+
+# Настройка прокси (если есть)
+http_proxy = os.getenv("HTTP_PROXY")
+https_proxy = os.getenv("HTTPS_PROXY")
+
+if http_proxy or https_proxy:
+    # Заменяем socks5:// на socks5h:// для DNS через прокси
+    proxy_url = (http_proxy or https_proxy).replace('socks5://', 'socks5h://')
+    logger.info(f"Использование прокси: {proxy_url}")
+    proxies = {
+        'http': proxy_url,
+        'https': proxy_url
+    }
+    apihelper.proxy = proxies
+    # Увеличиваем таймауты для нестабильного соединения
+    apihelper.CONNECT_TIMEOUT = 60
+    apihelper.READ_TIMEOUT = 120
+else:
+    logger.info("Прокси не настроен, работа без прокси.")
+
+# Функция для запуска бота с ретраями
+def run_bot_with_retries(max_retries=5, delay=5):
+    """Запуск бота с повторными попытками при ошибках соединения"""
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            logger.info(f"Попытка запуска бота #{attempt + 1}")
+            bot.polling(none_stop=True, interval=1, timeout=30)
+        except Exception as e:
+            attempt += 1
+            if attempt >= max_retries:
+                logger.error(f"Не удалось запустить бота после {max_retries} попыток: {e}")
+                raise
+            logger.warning(f"Ошибка соединения: {e}. Повторная попытка через {delay} секунд...")
+            time.sleep(delay)
+
+# Initialize bot
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Initialize RAG components
@@ -87,8 +135,8 @@ def main():
     print(f"Documents in vector store: {rag_engine.vector_store.get_count()}")
     print("=" * 50)
     
-    # Start polling
-    bot.polling(none_stop=True, interval=1)
+    # Start polling with retries
+    run_bot_with_retries(max_retries=10, delay=5)
 
 
 if __name__ == "__main__":

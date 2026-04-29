@@ -5,7 +5,6 @@ Uses llama-cpp-python for efficient CPU-based inference
 
 import os
 from typing import Optional, List, Dict
-from llama_cpp import Llama
 import config
 
 
@@ -28,17 +27,28 @@ class LLMGenerator:
         
         print(f"Loading LLM model: {self.model_path}")
         
-        # Load model with optimized settings for weak servers
-        self.model = Llama(
-            model_path=self.model_path,
-            n_ctx=config.llm_n_ctx,
-            n_threads=config.llm_n_threads,
-            n_batch=config.llm_n_batch,
-            n_gpu_layers=0,  # CPU-only mode
-            verbose=False
-        )
-        
-        print("LLM model loaded successfully")
+        # Lazy import to avoid dependency issues when model is not available
+        try:
+            from llama_cpp import Llama
+            
+            # Load model with optimized settings for weak servers
+            self.model = Llama(
+                model_path=self.model_path,
+                n_ctx=config.llm_n_ctx,
+                n_threads=config.llm_n_threads,
+                n_batch=config.llm_n_batch,
+                n_gpu_layers=0,  # CPU-only mode
+                verbose=False
+            )
+            
+            print("LLM model loaded successfully")
+        except ImportError:
+            print("Warning: llama-cpp-python not installed. Running in retrieval-only mode.")
+            print("Install with: pip install llama-cpp-python")
+            self.model = None
+        except Exception as e:
+            print(f"Error loading LLM model: {e}")
+            self.model = None
     
     def generate(
         self,
