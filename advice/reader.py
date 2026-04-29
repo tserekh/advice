@@ -17,12 +17,14 @@ def get_message(message_tag) -> Dict:
     
     # Пропускаем сервисные сообщения
     classes = message_tag.get("class", [])
+    if isinstance(classes, str):
+        classes = [classes]
     if "service" in classes:
         return None
     
     from_name = message_tag.find(attrs={"class": "from_name"})
     if from_name:
-        dic["from_name"] = from_name.text
+        dic["from_name"] = from_name.get_text(strip=True)
     
     reply = message_tag.find(attrs={"class": "reply_to details"})
     if reply:
@@ -33,7 +35,10 @@ def get_message(message_tag) -> Dict:
     # Извлекаем текст сообщения из div class="text"
     text_div = message_tag.find(attrs={"class": "text"})
     if text_div:
-        dic["message"] = text_div.get_text(strip=True)
+        # Получаем текст, сохраняя переносы строк как \n
+        text = text_div.get_text(separator="\n", strip=True)
+        # Заменяем <br> на переносы строк (на случай если они не обработались)
+        dic["message"] = text
     else:
         dic["message"] = ""
     
@@ -48,19 +53,22 @@ def resave_data(i, folder):
     for file in tqdm(files[::-1]):
         with open(file, encoding="utf-8") as f:
             soup = BeautifulSoup(f.read(), "html.parser")
-            # Находим все сообщения, включая service и normal
-            all_messages = soup.body.find_all(attrs={"class": lambda x: x and "message" in x})
+            # Находим все сообщения с классом "message"
+            # Telegram export использует классы: "message default", "message service"
+            all_messages = soup.body.find_all(attrs={"class": lambda x: x and isinstance(x, list) and "message" in x})
             
             # Извлекаем имя чата из первого файла
             if chat_name is None:
                 name_tag = soup.find(attrs={"class": "text bold"})
                 if name_tag:
-                    chat_name = name_tag.text.strip()
+                    chat_name = name_tag.get_text(strip=True)
             
             # Фильтруем только обычные сообщения (не service)
             for msg in all_messages:
                 classes = msg.get("class", [])
-                if "service" not in classes:
+                if isinstance(classes, str):
+                    classes = [classes]
+                if "service" not in classes and "default" in classes:
                     messages.append(msg)
     
     if not messages:
