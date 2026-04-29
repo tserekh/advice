@@ -5,9 +5,6 @@ Prepare and index Q&A data for SochiGPT RAG system
 import glob
 import os
 import pandas as pd
-import requests
-import zipfile
-import shutil
 from pathlib import Path
 
 import config
@@ -17,76 +14,22 @@ from advice.tokenizers import tokenize
 from rag_engine import RAGEngine
 
 
-def download_yandex_disk_data():
-    """Download chat export data from Yandex Disk if not present"""
+def check_local_chat_exports():
+    """Check if chat export data exists in the local data folder"""
     data_dir = Path(config.chats_path)
     
     # Check if ChatExport folders already exist
     existing_exports = list(data_dir.glob("ChatExport_*"))
     if existing_exports:
-        print(f"Found {len(existing_exports)} ChatExport folders. Skipping download.")
+        print(f"Found {len(existing_exports)} ChatExport folders in {config.chats_path}:")
+        for exp in existing_exports:
+            print(f"  - {exp.name}")
         return True
     
-    print("No ChatExport data found. Downloading from Yandex Disk...")
-    
-    # Yandex Disk public link
-    yandex_url = "https://disk.yandex.ru/d/NTfsZzoCguTo7Q"
-    
-    try:
-        # Get the direct download link using Yandex Disk API
-        api_url = f"https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key={yandex_url}"
-        response = requests.get(api_url, timeout=30)
-        response.raise_for_status()
-        
-        download_info = response.json()
-        download_link = download_info.get('href')
-        
-        if not download_link:
-            print("Error: Could not get download link from Yandex Disk API")
-            return False
-        
-        print(f"Downloading archive from: {download_link[:50]}...")
-        
-        # Download the archive
-        archive_path = data_dir / "chat_export.zip"
-        with requests.get(download_link, stream=True, timeout=60) as r:
-            r.raise_for_status()
-            total_size = int(r.headers.get('content-length', 0))
-            downloaded = 0
-            
-            with open(archive_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if total_size > 0:
-                        percent = (downloaded / total_size) * 100
-                        print(f"\rDownloading: {percent:.1f}%", end='', flush=True)
-        
-        print("\nArchive downloaded successfully. Extracting...")
-        
-        # Extract the archive
-        with zipfile.ZipFile(archive_path, 'r') as zip_ref:
-            zip_ref.extractall(data_dir)
-        
-        # Remove the archive
-        archive_path.unlink()
-        
-        # Verify extraction
-        new_exports = list(data_dir.glob("ChatExport_*"))
-        if new_exports:
-            print(f"Successfully extracted {len(new_exports)} ChatExport folders:")
-            for exp in new_exports:
-                print(f"  - {exp.name}")
-            return True
-        else:
-            print("Warning: No ChatExport folders found after extraction")
-            return False
-            
-    except Exception as e:
-        print(f"Error downloading data: {e}")
-        print("Please manually download from: https://disk.yandex.ru/d/NTfsZzoCguTo7Q")
-        print("and extract to the 'data' folder")
-        return False
+    print(f"No ChatExport folders found in {config.chats_path}")
+    print("Please manually copy your Telegram ChatExport folders to the 'data' directory.")
+    print("Expected format: data/ChatExport_<chat_name>/")
+    return False
 
 
 def prepare_legacy_data():
@@ -173,9 +116,9 @@ if __name__ == "__main__":
     print("SochiGPT Data Preparation & Indexing")
     print("=" * 50)
     
-    # Step 0: Download data from Yandex Disk if needed
-    print("\nStep 0: Checking for ChatExport data...")
-    download_yandex_disk_data()
+    # Step 0: Check for local ChatExport data
+    print("\nStep 0: Checking for ChatExport data in local folder...")
+    check_local_chat_exports()
     
     # Step 1: Prepare legacy data (if needed)
     print("\nStep 1: Preparing Q&A data...")
