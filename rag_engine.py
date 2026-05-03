@@ -5,6 +5,8 @@ Handles embedding generation, vector storage, and retrieval
 
 import os
 from typing import List, Dict, Tuple, Optional
+
+import pandas as pd
 from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
@@ -96,34 +98,126 @@ class RAGEngine:
     def __init__(self):
         self.embedding_model = EmbeddingModel()
         self.vector_store = VectorStore()
+        self._messages_df_cache: Dict[str, pd.DataFrame] = {}
         print("RAG Engine initialized")
+
+    def _load_messages_shard_df(self, shard: str) -> Optional[pd.DataFrame]:
+        shard = (shard or "").strip()
+        if not shard:
+            return None
+        if shard in self._messages_df_cache:
+            return self._messages_df_cache[shard]
+        path = os.path.join(config.messages_path, f"{shard}.tsv")
+        if not os.path.isfile(path):
+            return None
+        df = pd.read_csv(path, sep="\t", encoding="utf-8").reset_index(drop=True)
+        self._messages_df_cache[shard] = df
+        return df
+
+    def _neighbor_window_text(
+        self,
+        shard: str,
+        chat_name: str,
+        message_id: str,
+        before: int,
+        after: int,
+    ) -> str:
+        df = self._load_messages_shard_df(shard)
+        if df is None or df.empty:
+            return ""
+
+        mid = str(message_id).strip()
+        if not mid:
+            return ""
+
+        m = df["message_id"].astype(str) == mid
+        cn = str(chat_name or "").strip()
+        if cn and "chat_name" in df.columns:
+            m &= df["chat_name"].astype(str) == cn
+
+        hit_rows = df.loc[m]
+        if hit_rows.empty:
+            return ""
+
+        pos = int(hit_rows.index[0])
+        lo = max(0, pos - max(0, before))
+        hi = min(len(df), pos + max(0, after) + 1)
+
+        lines: List[str] = []
+        for i in range(lo, hi):
+            row = df.iloc[i]
+            rel = i - pos
+            fn = str(row.get("from_name", "") or "").strip()
+            txt = str(row.get("message", "") or "").strip()
+            if not txt:
+                continue
+            tag = f"[{rel:+d}]"
+            who = f"{fn}: " if fn else ""
+            lines.append(f"{tag} {who}{txt}")
+        return "\n".join(lines)
+
+    def expand_documents_with_neighbors(self, docs: List[Dict]) -> List[Dict]:
+        before = int(getattr(config, "neighbor_messages_before", 0))
+        after = int(getattr(config, "neighbor_messages_after", 0))
+        if before <= 0 and after <= 0:
+            return docs
+
+        out: List[Dict] = []
+        for d in docs:
+            shard = str(d.get("messages_shard") or "").strip()
+            mid = str(d.get("message_id") or "").strip()
+            chat_name = str(d.get("chat_name") or "").strip()
+            if not shard or not mid:
+                out.append(d)
+                continue
+            expanded = self._neighbor_window_text(shard, chat_name, mid, before, after)
+            if not expanded:
+                out.append(d)
+                continue
+            nd = dict(d)
+            nd["document"] = expanded
+            nd["answer"] = expanded
+            out.append(nd)
+        return out
     
-    def index_documents(self, qa_pairs: List[Dict]):
+    def index_documents(self, items: List[Dict]):
         """
-        Index question-answer pairs into the vector store
+        Index documents into the vector store.
         
         Args:
-            qa_pairs: List of dicts with 'question', 'answer', and optional metadata
+            items:
+              - Q&A style: {'id','question','answer','source'?}
+              - Text style: {'id','text','metadata'?,'source'?}
         """
         documents = []
         metadatas = []
         ids = []
         
-        for i, qa in enumerate(qa_pairs):
-            # Combine question and answer for better retrieval
-            doc_text = f"{qa['question']}\n{qa['answer']}"
+        for i, item in enumerate(items):
+            if "text" in item:
+                text = str(item.get("text", ""))
+                doc_text = text
+                metadata = dict(item.get("metadata") or {})
+                # keep downstream shape: app expects question/answer fields in metadata
+                metadata.setdefault("question", "")
+                metadata.setdefault("answer", text)
+                metadata["source"] = item.get("source", metadata.get("source", "unknown"))
+            else:
+                question = str(item.get("question", ""))
+                answer = str(item.get("answer", ""))
+                doc_text = f"{question}\n{answer}".strip()
+                metadata = {
+                    "question": question,
+                    "answer": answer,
+                    "source": item.get("source", "unknown"),
+                }
+
+            if not doc_text:
+                continue
+
             documents.append(doc_text)
-            
-            metadata = {
-                'question': qa['question'],
-                'answer': qa['answer'],
-                'source': qa.get('source', 'unknown')
-            }
             metadatas.append(metadata)
-            
-            # Create unique ID
-            doc_id = qa.get('id', f"doc_{i}")
-            ids.append(doc_id)
+            ids.append(item.get("id", f"doc_{i}"))
         
         # Add to vector store (with embeddings generated internally)
         embeddings = self.embedding_model.encode(documents)
@@ -133,13 +227,22 @@ class RAGEngine:
             self.vector_store.collection.delete(where={})
         except:
             pass
-        
-        self.vector_store.collection.add(
-            embeddings=embeddings,
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
+
+        # Chroma has a max batch size (varies by version). Chunk to stay below it.
+        max_batch_size = 5000
+        for start in range(0, len(documents), max_batch_size):
+            end = min(start + max_batch_size, len(documents))
+            batch_embeddings = embeddings[start:end]
+            batch_documents = documents[start:end]
+            batch_metadatas = metadatas[start:end]
+            batch_ids = ids[start:end]
+
+            self.vector_store.collection.add(
+                embeddings=batch_embeddings,
+                documents=batch_documents,
+                metadatas=batch_metadatas,
+                ids=batch_ids,
+            )
         
         print(f"Indexed {len(documents)} documents")
     
@@ -171,10 +274,13 @@ class RAGEngine:
                     'question': metadata.get('question', ''),
                     'answer': metadata.get('answer', ''),
                     'similarity': similarity,
-                    'source': metadata.get('source', 'unknown')
+                    'source': metadata.get('source', 'unknown'),
+                    'messages_shard': str(metadata.get('messages_shard') or ''),
+                    'chat_name': str(metadata.get('chat_name') or ''),
+                    'message_id': str(metadata.get('message_id') or ''),
                 })
-        
-        return filtered_results
+
+        return self.expand_documents_with_neighbors(filtered_results)
     
     def query(self, query: str, top_k: int = None) -> str:
         """

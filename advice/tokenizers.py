@@ -1,7 +1,14 @@
-from nltk.tokenize import sent_tokenize, word_tokenize
+import re
 from typing import List
 
 
 def tokenize(text: str) -> List[str]:
-    tokens = word_tokenize(text.lower(), language="russian")
-    return list(set(tokens))
+    if not isinstance(text, str):
+        text = ""
+
+    lowered = text.lower()
+    tokens = re.findall(r"\w+", lowered, flags=re.UNICODE)
+
+    # normalize: unique tokens, drop empty
+    uniq = {t for t in tokens if t}
+    return list(uniq)

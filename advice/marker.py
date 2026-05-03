@@ -9,7 +9,6 @@ import telebot
 import config
 from advice.tokenizers import tokenize
 
-
 def get_question_score(tokens: Iterable[str], coefs: Dict[str, float]) -> float:
     score = 0
     for token in tokens:
@@ -19,6 +18,9 @@ def get_question_score(tokens: Iterable[str], coefs: Dict[str, float]) -> float:
 
 
 def mark_question(text: str, coefs: Dict[str, float]) -> int:
+    # Some sources may contain NaN/None in "message" column.
+    if not isinstance(text, str):
+        text = ""
     text = text.lower()
     mark = False
     for word_marker in config.word_markers:

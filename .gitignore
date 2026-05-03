@@ -1,1 +1,12 @@
-Nothing should be ignored based on the provided file changes. The only modified file is 'advice/reader.py', which is a source code file and should not be added to .gitignore.
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.idea/
+# Локальные экспорты, индекс Chroma, сообщения — не коммитить
+data/
+*.tsv
+models/
+*.gguf
+*.log
+debug_advice.ipynb
